@@ -5,6 +5,9 @@ import groupsController from "../controller/groups_controller";
 import rolesController from "../controller/roles_controller";
 import ratingLevelController from "../controller/rating_level_controller";
 import userStatusLevelController from "../controller/user_status_level_controller";
+import dashboardController from "../controller/dashboard_controller";
+import reviewVersionController from "../controller/review_version_controller";
+import resultsReviewController from "../controller/results_review_controller";
 import JwtAction from "../middleware/jwt_action";
 
 const router = express.Router();
@@ -44,7 +47,17 @@ const initApiRoutes = (app) => {
 
     // User Status Level
     router.get("/userStatusLevel/read", userStatusLevelController.readFunc);
+    router.post("/userStatusLevel/create", userStatusLevelController.createFunc);
 
+    // Dashboard 
+    router.get("/dashboard/getListTotal", dashboardController.getTotalListButtonDashboard);
+    router.get("/dashboard/getTotalStar", dashboardController.getTotalStarToday);
+
+    // Review Version
+    router.post("/reviewVersion/create", reviewVersionController.createNewReviewApp);
+
+    // Result Review
+    router.post("/resultReview/create", resultsReviewController.createNewResultsReview);
 
     return app.use("/api/v1/", router);
 };

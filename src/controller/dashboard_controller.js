@@ -1,8 +1,8 @@
-import userStatusLevelServices from '../services/user_status_level_service'
+import dashboardServices from '../services/dashboard_service'
 
-const readFunc = async (req, res) => {
+const getTotalListButtonDashboard = async (req, res) => {
     try {
-        const data = await userStatusLevelServices.getAllUserStatusLevel();
+        const data = await dashboardServices.getTotalListButtonDashboard();
 
         return res.status(200).json({
             EM: data.EM,
@@ -21,9 +21,9 @@ const readFunc = async (req, res) => {
     }
 };
 
-const createFunc = async (req, res) => {
+const getTotalStarToday = async (req, res) => {
     try {
-        const data = await userStatusLevelServices.createNewUserStatusLevel(req.body);
+        const data = await dashboardServices.getTotalStarToday();
 
         return res.status(200).json({
             EM: data.EM,
@@ -43,6 +43,6 @@ const createFunc = async (req, res) => {
 };
 
 module.exports = {
-    readFunc,
-    createFunc
+    getTotalListButtonDashboard,
+    getTotalStarToday
 };

@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 8080;
 // config corn
 configCors(app);
 
+
 // config body parser
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

@@ -25,8 +25,6 @@ const checkEmailExist = async (email) => {
 
         if (user.length !== 0) {
 
-            console.log(user);
-
             return true;
         }
 
@@ -41,6 +39,8 @@ const checkEmailExist = async (email) => {
         };
     }
 };
+
+
 
 module.exports = {
     hashPassword,

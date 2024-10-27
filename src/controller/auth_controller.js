@@ -48,7 +48,7 @@ const loginController = async (req, res) => {
                 httpOnly: true,
                 secure: false,
                 sameSite: "strict",
-                maxAge: 900 * 1000,
+                maxAge: 900 * 10000,
             });
         }
         if (data && data.EC === 0 && data.DT.refreshToken) {
@@ -57,7 +57,7 @@ const loginController = async (req, res) => {
                 httpOnly: true,
                 secure: false,
                 sameSite: "strict",
-                maxAge: 3600 * 1000,
+                maxAge: 3600 * 10000,
             });
         }
         return res.status(200).json({
