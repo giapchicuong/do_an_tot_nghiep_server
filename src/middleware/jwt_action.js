@@ -84,17 +84,21 @@ const checkUserJwt = async (req, res, next) => {
 
         let accessToken = cookies.accessToken || tokenFromHeader;
 
+        let refreshToken = cookies.refreshToken;
+
         let decoded = verifyToken(accessToken);
 
         if (decoded && decoded !== "TokenExpiredError") {
 
             decoded.accessToken = accessToken;
 
-            decoded.refreshToken = cookies.refreshToken;
+            decoded.refreshToken = refreshToken;
 
             req.user = decoded;
 
             req.accessToken = accessToken;
+
+            req.refreshToken = refreshToken || decoded.refreshToken;
 
             next();
         } else if (decoded && decoded === "TokenExpiredError") {

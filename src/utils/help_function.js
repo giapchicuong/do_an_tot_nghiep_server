@@ -6,7 +6,7 @@ class HelpFunction {
         }
 
         const result = ((today - yesterday) / yesterday) * 100;
-        return result;
+        return Math.round(result * 100) / 100;
     }
 }
 export default HelpFunction;

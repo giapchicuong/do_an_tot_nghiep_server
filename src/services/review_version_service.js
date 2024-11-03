@@ -18,6 +18,7 @@ const createNewReviewVersion = async (db, userId, versionId, rating) => {
 }
 
 const createNewReviewDetailVersion = async (db, reviewId, reviewOptions) => {
+    console.log('reviewoptions', reviewOptions)
     for (const item of reviewOptions) {
 
         const sql = `
@@ -27,16 +28,9 @@ const createNewReviewDetailVersion = async (db, reviewId, reviewOptions) => {
 
         const values = [reviewId, item.reviewOptionId];
 
-        const [data] = await db.query(sql, values);
-
-        if (data.affectedRows > 0) {
-
-            return data
-        } else {
-            throw new Error("Creating data failed");
-        }
-
+        await db.query(sql, values);
     }
+
 }
 
 

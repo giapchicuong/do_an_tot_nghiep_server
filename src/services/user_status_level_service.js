@@ -54,7 +54,7 @@ class UserStatusLevel {
         }
     }
 
-    static updateTimeEndUserStatusLevel = async (db, userId, statusId, durationId) => {
+    static updateTimeEndUserStatusLevel = async (db, userId, currentStatusId, newStatusId, durationId) => {
 
         const getDurationName = async (db, durationId) => {
             const sql = "SELECT durationName FROM duration_options WHERE durationId = ?";
@@ -79,7 +79,7 @@ class UserStatusLevel {
                      statusId = ?, durationId = ?
                      WHERE UserId = ? AND StatusID = ?`;
 
-        const [data] = await db.query(sql, [durationId, statusId, durationId, userId, statusId]);
+        const [data] = await db.query(sql, [durationId, newStatusId, durationId, userId, currentStatusId]);
 
         if (data.affectedRows > 0 && data.changedRows) {
             return data;
@@ -113,7 +113,7 @@ const createNewUserStatusLevel = async (rawData) => {
         const STATUSSUCCESSID = 1
 
         const transactionId = await UserStatusLevel.createNewPaymentTransaction(connection, rawData.userId, rawData.methodId, rawData.amount, STATUSSUCCESSID);
-        await UserStatusLevel.updateTimeEndUserStatusLevel(connection, rawData.userId, rawData.currentStatusId, rawData.durationId);
+        await UserStatusLevel.updateTimeEndUserStatusLevel(connection, rawData.userId, rawData.currentStatusId, rawData.newStatusId, rawData.durationId);
         await UserStatusLevel.createHistoryUserUpgrade(connection, rawData.userId, rawData.currentStatusId, rawData.newStatusId, transactionId);
 
         await connection.commit();

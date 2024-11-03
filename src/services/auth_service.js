@@ -84,7 +84,7 @@ const registerService = async (rawData) => {
 
 const loginService = async (rawData) => {
     try {
-        const sql = "select Email, Password,GroupId from users where email=?";
+        const sql = "select Email,UserID, Password,GroupId from users where email=?";
 
         const values = [rawData.email];
 
@@ -106,6 +106,7 @@ const loginService = async (rawData) => {
 
                 const payload = {
                     email: data.Email,
+                    userId: data.UserID,
                     groupId: data.GroupId,
                 };
 

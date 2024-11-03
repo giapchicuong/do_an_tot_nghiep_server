@@ -112,8 +112,66 @@ const updateUser = async (rawData) => {
     }
 };
 
+const getUserById = async (id) => {
+    try {
+        const sql = `
+        
+        SELECT 
+                u.fullName, 
+                u.email, 
+                COUNT(DISTINCT rr.ResultId) AS totalResultReview, 
+                (SELECT sl.statusName 
+                FROM status_level sl 
+                JOIN user_status_level usl ON usl.statusId = sl.statusId 
+                WHERE usl.userid = u.userid 
+                LIMIT 1) AS statusName,
+                (SELECT FLOOR((UNIX_TIMESTAMP(usl.timeEnd) - UNIX_TIMESTAMP(usl.timeStart)) / 86400) 
+                FROM user_status_level usl 
+                WHERE usl.userid = u.userid 
+                LIMIT 1) AS timeInDayEnd
+            FROM 
+                users u
+            LEFT JOIN 
+                results_review rr ON rr.userid = u.userid
+            WHERE 
+                u.userid = ?
+            GROUP BY 
+                u.userid;
+
+        `;
+
+        const values = [id];
+        const [data, fields] = await db.query(sql, values);
+
+        if (data.length > 0) {
+            return {
+                EM: "Get data success.",
+                EC: 0,
+                DT: data[0],
+            };
+        } else {
+            return {
+                EM: "Get data fail.",
+                EC: 1,
+                DT: {},
+            };
+        }
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+
+
 module.exports = {
     getAllUser,
+    getUserById,
     createNewUser,
     updateUser,
 };

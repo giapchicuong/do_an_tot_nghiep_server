@@ -26,6 +26,7 @@ const initApiRoutes = (app) => {
     router.post("/users/create", userController.createFunc);
     router.put("/users/update", userController.updateFunc);
     router.get("/account", userController.getUserAccount);
+    router.get("/user/getAccountInfo", userController.getUserById);
 
     // Groups
     router.get("/groups/read", groupsController.readFunc);
@@ -52,6 +53,7 @@ const initApiRoutes = (app) => {
     // Dashboard 
     router.get("/dashboard/getListTotal", dashboardController.getTotalListButtonDashboard);
     router.get("/dashboard/getTotalStar", dashboardController.getTotalStarToday);
+    router.get("/dashboard/listReviewOptions", dashboardController.getListReviewOptions);
 
     // Review Version
     router.post("/reviewVersion/create", reviewVersionController.createNewReviewApp);

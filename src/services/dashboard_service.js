@@ -190,14 +190,14 @@ const getTotalListButtonDashboard = async () => {
         return {
             EM: "Get total success.",
             EC: 0,
-            DT: [
-                {
-                    fruit: { total: totalReviewFruitToday, percent: percentReviewFruit },
-                    app: { total: totalReviewAppToday, percent: percentReviewApp },
-                    newMember: { total: totalNewMemberToday, percent: percentNewMember },
-                    updateVip: { total: totalUpdateVipToday, percent: percentUpdateVip },
-                }
-            ]
+            DT:
+            {
+                fruit: { total: totalReviewFruitToday, percent: percentReviewFruit },
+                app: { total: totalReviewAppToday, percent: percentReviewApp },
+                newMember: { total: totalNewMemberToday, percent: percentNewMember },
+                updateVip: { total: totalUpdateVipToday, percent: percentUpdateVip },
+            }
+
         };
 
     } catch (error) {
@@ -263,10 +263,56 @@ const getTotalStarToday = async () => {
     }
 }
 
+const getListReviewOptions = async () => {
+    try {
+        const sql = `
+        SELECT 
+        u.username,
+        u.email,
+        rv.rating,
+        av.nameVersion,
+        GROUP_CONCAT(ro.reviewOptionName ORDER BY rv.created_at SEPARATOR ', ') AS reviewOptions,
+        MAX(rv.created_at) AS createdAt
+        FROM review_version rv
+        LEFT JOIN review_detail_version rdv ON rdv.ReviewId = rv.ReviewId
+        LEFT JOIN users u ON u.userId = rv.userId
+        LEFT JOIN app_versions av ON av.versionId = rv.VersionId
+        LEFT JOIN review_options ro ON ro.ReviewOptionId = rdv.reviewOptionId
+        where Date(rv.created_at) = Date(Now())
+        GROUP BY u.username, u.email, av.nameVersion,rv.rating;
+
+        `;
+
+        const [data, fields] = await db.query(sql);
+
+        if (data) {
+            return {
+                EM: "Get list review options success.",
+                EC: 0,
+                DT: data,
+            };
+        } else {
+            return {
+                EM: "Get review options fail.",
+                EC: 1,
+                DT: [],
+            };
+        }
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
 
 
 
 module.exports = {
     getTotalListButtonDashboard,
-    getTotalStarToday
+    getTotalStarToday,
+    getListReviewOptions
 };
