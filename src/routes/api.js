@@ -57,6 +57,9 @@ const initApiRoutes = (app) => {
 
     // Review Version
     router.post("/reviewVersion/create", reviewVersionController.createNewReviewApp);
+    router.get("/reviewVersion/getOptionRating", reviewVersionController.getOptionRating);
+    router.get("/reviewVersion/getVersionTotalRatingAndAvgRating", reviewVersionController.getVersionTotalRatingAndAvgRating);
+    router.get("/reviewVersion/getListUserRating", reviewVersionController.getListUserRating);
 
     // Result Review
     router.post("/resultReview/create", resultsReviewController.createNewResultsReview);
