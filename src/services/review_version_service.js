@@ -113,26 +113,33 @@ const getOptionRating = async () => {
     }
 }
 
+
+const getUserRatings = async (connection) => {
+    const sql = `
+        SELECT 
+            u.email,
+            rv.rating,
+            av.nameVersion,
+            GROUP_CONCAT(ro.reviewOptionName ORDER BY rv.created_at SEPARATOR ', ') AS reviewOptions,
+            MAX(rv.created_at) AS createdAt
+        FROM review_version rv
+        LEFT JOIN review_detail_version rdv ON rdv.ReviewId = rv.ReviewId
+        LEFT JOIN users u ON u.userId = rv.userId
+        LEFT JOIN app_versions av ON av.versionId = rv.VersionId
+        LEFT JOIN review_options ro ON ro.ReviewOptionId = rdv.reviewOptionId
+        WHERE av.created_at = (SELECT MAX(created_at) FROM app_versions)
+        GROUP BY u.username, u.email, av.nameVersion, rv.rating
+        ORDER BY createdAt DESC;
+    `;
+
+    return await connection.query(sql);
+};
+
+
+
 const getListUserRating = async () => {
     try {
-        const sql = `
-            SELECT 
-                u.email,
-                rv.rating,
-                av.nameVersion,
-                GROUP_CONCAT(ro.reviewOptionName ORDER BY rv.created_at SEPARATOR ', ') AS reviewOptions,
-                MAX(rv.created_at) AS createdAt
-                FROM review_version rv
-                LEFT JOIN review_detail_version rdv ON rdv.ReviewId = rv.ReviewId
-                LEFT JOIN users u ON u.userId = rv.userId
-                LEFT JOIN app_versions av ON av.versionId = rv.VersionId
-                LEFT JOIN review_options ro ON ro.ReviewOptionId = rdv.reviewOptionId
-                 where av.created_at = (SELECT MAX(created_at) FROM app_versions)
-                GROUP BY u.username, u.email, av.nameVersion,rv.rating;
-
-        `;
-
-        const [data, fields] = await db.query(sql);
+        const [data, fields] = await getUserRatings(db);
 
         if (data) {
             return {
@@ -160,8 +167,6 @@ const getListUserRating = async () => {
 
 
 
-
-
 const createNewReviewApp = async (rawData) => {
     const connection = await db.getConnection();
     try {
@@ -170,14 +175,18 @@ const createNewReviewApp = async (rawData) => {
         const reviewId = await createNewReviewVersion(connection, rawData.userId, rawData.versionId, rawData.rating);
 
         await createNewReviewDetailVersion(connection, reviewId, rawData.reviewOptions)
+
+        const [data, fields] = await getUserRatings(connection);
+
         await connection.commit();
+        if (data) {
 
-
-        return {
-            EM: "Create new review app success.",
-            EC: 0,
-            DT: [],
-        };
+            return {
+                EM: "Create new review app success.",
+                EC: 0,
+                DT: data,
+            };
+        }
 
     } catch (error) {
         await connection.rollback();
