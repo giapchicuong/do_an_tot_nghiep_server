@@ -310,9 +310,129 @@ const getListReviewOptions = async () => {
 }
 
 
+const getPercentageStar = async (rawData) => {
+    try {
+        const sql = `
+                WITH total_reviews AS (
+                SELECT 
+                    COUNT(rating) AS total_count
+                FROM 
+                    review_version
+                WHERE 
+                    EXTRACT(YEAR FROM created_at) = ?
+                    AND EXTRACT(MONTH FROM created_at) = ?
+            )
+
+            SELECT 
+                rating AS numberStar,
+                COUNT(rating) AS ratingCount,
+                ROUND(COUNT(rating) * 100.0 / (SELECT total_count FROM total_reviews), 2) AS ratingPercentage
+            FROM 
+                review_version
+            WHERE 
+                EXTRACT(YEAR FROM created_at) = ?
+                AND EXTRACT(MONTH FROM created_at) = ?
+            GROUP BY 
+                rating
+            ORDER BY 
+                rating desc;
+        `;
+        const values = [rawData.year, rawData.month, rawData.year, rawData.month];
+        const [data, fields] = await db.query(sql, values);
+
+        if (data) {
+            const numberStar = data.map((e) => e.numberStar)
+            const ratingPercentage = data.map((e) => e.ratingPercentage)
+            const ratingCount = data.map((e) => e.ratingCount)
+            return {
+                EM: "Get list data success.",
+                EC: 0,
+                DT: [{ numberStar: numberStar }, { ratingCount: ratingCount }, { ratingPercentage: ratingPercentage }],
+            };
+        } else {
+            return {
+                EM: "Get data fail.",
+                EC: 1,
+                DT: [],
+            };
+        }
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+const getPercentageOption = async (rawData) => {
+    try {
+        const sql = `
+              WITH totalReviewOption AS (
+                    SELECT 
+                        COUNT(reviewOptionId) AS totalOption
+                    FROM 
+                        review_detail_version
+                    WHERE 
+                        EXTRACT(YEAR FROM review_detail_version.created_at) = ?
+                        AND EXTRACT(MONTH FROM review_detail_version.created_at) = ?
+                )
+
+                SELECT 
+                    ro.reviewOptionName AS reviewOptionName,
+                    COUNT(rdv.reviewOptionId) AS reviewOptionCount,
+                    ROUND(COUNT(rdv.reviewOptionId) * 100.0 / (SELECT totalOption FROM totalReviewOption), 2) AS optionPercentage
+                FROM 
+                    review_version rv
+                LEFT JOIN review_detail_version rdv ON rdv.reviewId = rv.reviewId
+                LEFT JOIN review_options ro ON ro.reviewOptionId = rdv.reviewOptionId
+                WHERE 
+                    EXTRACT(YEAR FROM rdv.created_at) = ?
+                    AND EXTRACT(MONTH FROM rdv.created_at) = ?
+                GROUP BY 
+                    ro.reviewOptionName
+                ORDER BY 
+                    ro.reviewOptionName;
+
+        `;
+        const values = [rawData.year, rawData.month, rawData.year, rawData.month];
+        const [data, fields] = await db.query(sql, values);
+
+        if (data) {
+            const reviewOptionName = data.map((e) => e.reviewOptionName)
+            const reviewOptionCount = data.map((e) => e.reviewOptionCount)
+            const optionPercentage = data.map((e) => e.optionPercentage)
+            return {
+                EM: "Get list data success.",
+                EC: 0,
+                DT: [{ reviewOptionName: reviewOptionName }, { reviewOptionCount: reviewOptionCount }, { optionPercentage: optionPercentage }],
+            };
+        } else {
+            return {
+                EM: "Get data fail.",
+                EC: 1,
+                DT: [],
+            };
+        }
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+
 
 module.exports = {
     getTotalListButtonDashboard,
     getTotalStarToday,
-    getListReviewOptions
+    getListReviewOptions,
+    getPercentageStar,
+    getPercentageOption
 };
