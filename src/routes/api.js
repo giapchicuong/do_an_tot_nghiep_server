@@ -58,6 +58,7 @@ const initApiRoutes = (app) => {
     // Analyst
     router.post("/dashboard/getPercentageStar", dashboardController.getPercentageStar);
     router.post("/dashboard/getPercentageOption", dashboardController.getPercentageOption);
+    router.post("/dashboard/getAvgAndNumberOption", dashboardController.getAvgAndNumberOption);
 
     // Review Version
     router.post("/reviewVersion/create", reviewVersionController.createNewReviewApp);

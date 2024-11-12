@@ -429,10 +429,249 @@ const getPercentageOption = async (rawData) => {
 
 
 
+const getOptionName = async () => {
+    try {
+        const sql = `
+            select ro.reviewOptionName
+            from review_options ro 
+        `;
+
+        const [data] = await db.query(sql);
+
+        return data;
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+
+const getAvgNumberStar = async () => {
+    try {
+        const sql = `
+              WITH date_range AS (
+                SELECT '2024-11-01' AS reviewDate
+                UNION ALL SELECT '2024-11-02'
+                UNION ALL SELECT '2024-11-03'
+                UNION ALL SELECT '2024-11-04'
+                UNION ALL SELECT '2024-11-05'
+                UNION ALL SELECT '2024-11-06'
+                UNION ALL SELECT '2024-11-07'
+            )
+
+            -- Kết hợp với bảng review_version để tính trung bình sao cho từng ngày
+            SELECT 
+                dr.reviewDate,
+                ROUND(COALESCE(AVG(rv.rating), 0),2) AS averageRating, -- Tránh giá trị NULL, trả về 0 nếu không có đánh giá
+                COUNT(rv.rating) AS totalCount -- Số lượng đánh giá
+            FROM 
+                date_range dr
+            LEFT JOIN review_version rv
+                ON DATE(rv.created_at) = dr.reviewDate
+                AND EXTRACT(MONTH FROM rv.created_at) = 11  -- Lọc theo tháng 11
+                AND EXTRACT(YEAR FROM rv.created_at) = 2024  -- Lọc theo năm 2024
+            WHERE
+                dr.reviewDate BETWEEN '2024-11-01' AND '2024-11-07'  -- Điều kiện ngày bắt đầu và ngày kết thúc
+            GROUP BY 
+                dr.reviewDate
+            ORDER BY 
+                dr.reviewDate ASC;
+        `;
+
+        const [data] = await db.query(sql);
+
+        return data;
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+const getOption = async () => {
+    try {
+        const sql = `
+                        WITH date_range AS (
+                SELECT '2024-11-01' AS reviewDate
+                UNION ALL SELECT '2024-11-02'
+                UNION ALL SELECT '2024-11-03'
+                UNION ALL SELECT '2024-11-04'
+                UNION ALL SELECT '2024-11-05'
+                UNION ALL SELECT '2024-11-06'
+                UNION ALL SELECT '2024-11-07'
+            ),
+            option_list AS (
+                SELECT ReviewOptionName
+                FROM review_options
+            ),
+            date_option_combination AS (
+                SELECT dr.reviewDate, ol.ReviewOptionName
+                FROM date_range dr
+                CROSS JOIN option_list ol
+            )
+
+            SELECT 
+                doc.reviewDate,
+                COALESCE(doc.ReviewOptionName, 'Không có đánh giá') AS nameOption,
+                COALESCE(COUNT(rdv.reviewOptionId), 0) AS totalReviewOption
+            FROM 
+                date_option_combination doc
+            LEFT JOIN review_version rv
+                ON DATE(rv.created_at) = doc.reviewDate
+            LEFT JOIN review_detail_version rdv
+                ON rdv.reviewId = rv.reviewId
+            LEFT JOIN review_options ro 
+                ON ro.ReviewOptionName = doc.ReviewOptionName
+            GROUP BY 
+                doc.reviewDate, 
+                doc.ReviewOptionName
+            ORDER BY 
+                doc.reviewDate ASC, 
+                doc.ReviewOptionName;
+                        
+        `;
+
+        const [data] = await db.query(sql);
+
+        return data;
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+
+
+const getAvgAndNumberOption = async (rawData) => {
+    try {
+
+        const optionsDate = [
+            "2024-11-01",
+            "2024-11-02",
+            "2024-11-03",
+            "2024-11-04",
+            "2024-11-05",
+            "2024-11-06",
+            "2024-11-07",
+        ];
+
+        const options = [
+            "Bất tiện",
+            "Chậm",
+            "Chính xác",
+            "Không chính xác",
+            "Nhanh",
+            "Tiện lợi",
+        ];
+
+        // const listOptionName = await getOptionName();
+        const dataAvg = await getAvgNumberStar();
+        const dataOption = await getOption();
+        if (dataAvg) {
+            const dateTime = dataAvg.map((e) => e.reviewDate)
+            const averageRating = dataAvg.map((e) => e.averageRating)
+            const value0 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[0])
+                .map((e) => e.totalReviewOption);
+
+            const value1 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[1])
+                .map((e) => e.totalReviewOption);
+
+            const value2 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[2])
+                .map((e) => e.totalReviewOption);
+
+            const value3 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[3])
+                .map((e) => e.totalReviewOption);
+
+            const value4 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[4])
+                .map((e) => e.totalReviewOption);
+
+            const value5 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[5])
+                .map((e) => e.totalReviewOption);
+
+            const value6 = dataOption
+                .filter((e) => e.reviewDate === optionsDate[6])
+                .map((e) => e.totalReviewOption);
+
+            // const options = listOptionName.map((e) => e.reviewOptionName)
+
+            return {
+                EM: "Get list data success.",
+                EC: 0,
+                DT: [
+                    dateTime, averageRating,
+                    {
+                        name: options[0],
+                        value: value0
+                    },
+                    {
+                        name: options[1],
+                        value: value1
+                    },
+                    {
+                        name: options[2],
+                        value: value2
+                    },
+                    {
+                        name: options[3],
+                        value: value3
+                    },
+                    {
+                        name: options[4],
+                        value: value4
+                    },
+                    {
+                        name: options[5],
+                        value: value5
+                    },
+                    {
+                        name: options[6],
+                        value: value6
+                    },
+                ],
+            };
+        } else {
+            return {
+                EM: "Get data fail.",
+                EC: 1,
+                DT: [],
+            };
+        }
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+
+
+
 module.exports = {
     getTotalListButtonDashboard,
     getTotalStarToday,
     getListReviewOptions,
     getPercentageStar,
-    getPercentageOption
+    getPercentageOption,
+    getAvgAndNumberOption
 };
