@@ -615,7 +615,12 @@ const getAvgAndNumberOption = async (rawData) => {
                 EM: "Get list data success.",
                 EC: 0,
                 DT: [
-                    dateTime, averageRating,
+                    {
+                        dateTime: dateTime
+                    },
+                    {
+                        averageRating: averageRating
+                    },
                     {
                         name: options[0],
                         value: value0
