@@ -115,28 +115,33 @@ const updateUser = async (rawData) => {
 const getUserById = async (id) => {
     try {
         const sql = `
-        
-        SELECT 
-                u.fullName, 
-                u.email, 
-                COUNT(DISTINCT rr.ResultId) AS totalResultReview, 
-                (SELECT sl.statusName 
-                FROM status_level sl 
-                JOIN user_status_level usl ON usl.statusId = sl.statusId 
-                WHERE usl.userid = u.userid 
-                LIMIT 1) AS statusName,
-                (SELECT FLOOR((UNIX_TIMESTAMP(usl.timeEnd) - UNIX_TIMESTAMP(usl.timeStart)) / 86400) 
-                FROM user_status_level usl 
-                WHERE usl.userid = u.userid 
-                LIMIT 1) AS timeInDayEnd
-            FROM 
-                users u
-            LEFT JOIN 
-                results_review rr ON rr.userid = u.userid
-            WHERE 
-                u.userid = ?
-            GROUP BY 
-                u.userid;
+                                    SELECT 
+                    u.fullName, 
+                    u.email, 
+                    COUNT(DISTINCT rr.ResultId) AS totalResultReview, 
+                    (SELECT sl.statusName 
+                    FROM status_level sl 
+                    JOIN user_status_level usl ON usl.statusId = sl.statusId 
+                    WHERE usl.userid = u.userid 
+                    LIMIT 1) AS statusName,
+                    (SELECT 
+                        CASE 
+                            WHEN usl.timeEnd IS NULL OR usl.timeEnd < NOW() THEN 0
+                            ELSE FLOOR((UNIX_TIMESTAMP(usl.timeEnd) - UNIX_TIMESTAMP(NOW())) / 86400)
+                        END 
+                    FROM user_status_level usl 
+                    WHERE usl.userid = u.userid 
+                    LIMIT 1) AS timeInDayEnd
+                FROM 
+                    users u
+                LEFT JOIN 
+                    results_review rr ON rr.userid = u.userid
+                LEFT JOIN 
+                    user_status_level usl ON usl.userid = u.userid
+                WHERE 
+                    u.userid = ?
+                GROUP BY 
+                    u.userid;
 
         `;
 
@@ -167,6 +172,61 @@ const getUserById = async (id) => {
     }
 }
 
+const checkUserLevelIsAdmin = async (id) => {
+    try {
+        const sql = `
+                select do.durationId
+                from user_status_level usl
+                left join duration_options do on do.durationId = usl.durationId
+                where usl.userId = ? and usl.statusId =1;
+        `;
+
+        const values = [id];
+        const [data, fields] = await db.query(sql, values);
+
+
+        if (data.length > 0) {
+            return data;
+        }
+        return;
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+
+const checkTimeEndAndUpdate = async (id) => {
+    try {
+        const sql = `
+                 UPDATE user_status_level usl
+                SET usl.TimeEnd = null, usl.TimeStart = NOW(), usl.DurationId = 6, usl.StatusId = 2
+                WHERE usl.timeEnd < NOW() and usl.userid = ?;
+        `;
+
+        const values = [id];
+        const [data, fields] = await db.query(sql, values);
+
+        if (data.affectedRows > 0) {
+            return data.affectedRows;
+        } else {
+            return;
+        }
+
+    } catch (error) {
+        console.log(error);
+
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
 
 
 module.exports = {
@@ -174,4 +234,6 @@ module.exports = {
     getUserById,
     createNewUser,
     updateUser,
+    checkTimeEndAndUpdate,
+    checkUserLevelIsAdmin
 };

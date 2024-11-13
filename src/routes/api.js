@@ -3,6 +3,8 @@ import authController from "../controller/auth_controller";
 import userController from "../controller/user_controller";
 import groupsController from "../controller/groups_controller";
 import rolesController from "../controller/roles_controller";
+import durationOptionController from "../controller/duration_option_controller";
+import paymentMethodController from "../controller/payment_method_controller";
 import ratingLevelController from "../controller/rating_level_controller";
 import userStatusLevelController from "../controller/user_status_level_controller";
 import dashboardController from "../controller/dashboard_controller";
@@ -39,6 +41,12 @@ const initApiRoutes = (app) => {
     router.post("/roles/create", rolesController.createFunc);
     router.delete("/roles/delete", rolesController.deleteFunc);
     router.put("/roles/update", rolesController.updateFunc);
+
+    // Duration Option
+    router.get("/durationOption/read", durationOptionController.readFunc);
+
+    // Payment Method
+    router.get("/paymentMethod/read", paymentMethodController.readFunc);
 
     // Rating Level
     router.get("/ratingLevel/read", ratingLevelController.readFunc);

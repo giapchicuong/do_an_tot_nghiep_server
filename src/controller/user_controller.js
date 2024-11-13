@@ -62,19 +62,45 @@ const updateFunc = async (req, res) => {
     }
 };
 
-const getUserAccount = (req, res) => {
+const getUserAccount = async (req, res) => {
+
     try {
-        return res.status(200).json({
-            EM: "Get user account successfully",
-            EC: 0,
-            DT: {
-                accessToken: req.accessToken,
-                refreshToken: req.refreshToken,
-                email: req.user.email,
-                userId: req.user.userId,
-                groupId: req.user.groupId,
-            },
-        });
+        const dataCheckIsAdmin = await userServices.checkUserLevelIsAdmin(req.user.userId);
+
+        if (dataCheckIsAdmin) {
+
+            await userServices.checkTimeEndAndUpdate(req.user.userId);
+
+            return res.status(200).json({
+                EM: "Get user account successfully",
+                EC: 0,
+                DT: {
+                    accessToken: req.accessToken,
+                    refreshToken: req.refreshToken,
+                    email: req.user.email,
+                    userId: req.user.userId,
+                    groupId: req.user.groupId,
+                    isAdmin: true,
+                    durations: dataCheckIsAdmin[0],
+                },
+            });
+        } else {
+
+            return res.status(200).json({
+                EM: "Get user account successfully",
+                EC: 0,
+                DT: {
+                    accessToken: req.accessToken,
+                    refreshToken: req.refreshToken,
+                    email: req.user.email,
+                    userId: req.user.userId,
+                    groupId: req.user.groupId,
+                    isAdmin: false,
+                    duration: null
+                },
+            });
+        }
+
     } catch (error) {
         console.log(error);
 
@@ -106,6 +132,7 @@ const getUserById = async (req, res) => {
         });
     }
 };
+
 module.exports = {
     readFunc,
     createFunc,
