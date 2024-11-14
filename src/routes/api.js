@@ -10,6 +10,7 @@ import userStatusLevelController from "../controller/user_status_level_controlle
 import dashboardController from "../controller/dashboard_controller";
 import reviewVersionController from "../controller/review_version_controller";
 import resultsReviewController from "../controller/results_review_controller";
+import paymentController from "../controller/payment_controller";
 import JwtAction from "../middleware/jwt_action";
 
 const router = express.Router();
@@ -76,6 +77,13 @@ const initApiRoutes = (app) => {
 
     // Result Review
     router.post("/resultReview/create", resultsReviewController.createNewResultsReview);
+
+
+    // Payment
+    router.post("/payment", paymentController.paymentController);
+    router.post("/callback", paymentController.paymentCallBackController);
+    router.post("/check-status-order", paymentController.checkStatusOrderController);
+
 
     return app.use("/api/v1/", router);
 };
