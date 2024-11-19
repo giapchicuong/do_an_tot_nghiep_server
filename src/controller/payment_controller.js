@@ -18,7 +18,12 @@ const paymentController = async (req, res) => {
         redirecturl: 'demozpdk://payment_result',
     };
 
-    const items = [req.body];
+    const CURRENTNORMALSTATUSID = 2
+
+
+    const items = [{ ...req.body, userId: req.user.userId, currentStatusId: CURRENTNORMALSTATUSID }];
+
+
     const transID = Math.floor(Math.random() * 1000000);
 
     const order = {
@@ -30,7 +35,7 @@ const paymentController = async (req, res) => {
         embed_data: JSON.stringify(embed_data),
         //khi thanh toán xong, zalopay server sẽ POST đến url này để thông báo cho server của mình
         //Chú ý: cần dùng ngrok để public url thì Zalopay Server mới call đến được
-        callback_url: 'https://f59c-2402-800-63b9-855b-2854-20fa-c93e-f1ac.ngrok-free.app/api/v1/callback',
+        callback_url: 'https://a608-2405-4802-a5fc-e7e0-3480-5a-5cde-5314.ngrok-free.app/api/v1/callback',
         description: `AIFreshify thanh toán cho đơn hàng #${transID}`,
         bank_code: 'zalopayapp',
     };
@@ -62,17 +67,20 @@ const paymentController = async (req, res) => {
 
 
         const NEWSTATUSVIPID = 1
+        const CURRENTNORMALSTATUSID = 2
 
         const dataUser = {
-            userId: req.body.userId,
+            userId: req.user.userId,
             durationId: req.body.durationId,
             methodId: req.body.methodId,
-            currentStatusId: req.body.currentStatusId,
+            currentStatusId: CURRENTNORMALSTATUSID,
             newStatusId: NEWSTATUSVIPID,
             durationPrice: durationPrice,
             app_trans_id: order.app_trans_id,
 
         }
+
+        console.log(dataUser)
 
         await userStatusLevelService.createNewUserStatusLevel(dataUser)
 
@@ -116,6 +124,8 @@ const paymentCallBackController = async (req, res) => {
             const NEWSTATUSVIPID = 1
             const STATUSPAYMENTSUCCESS = 1
 
+            console.log(req.body)
+
             const data = {
                 userId: item.userId,
                 currentStatusId: item.currentStatusId,
@@ -124,6 +134,8 @@ const paymentCallBackController = async (req, res) => {
                 statusId: STATUSPAYMENTSUCCESS,
                 app_trans_id: dataJson['app_trans_id']
             };
+
+            console.log(data)
 
             await userStatusLevelService.updateTransactionStatusAndUserStatusLevel(data);
 

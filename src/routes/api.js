@@ -11,6 +11,7 @@ import dashboardController from "../controller/dashboard_controller";
 import reviewVersionController from "../controller/review_version_controller";
 import resultsReviewController from "../controller/results_review_controller";
 import paymentController from "../controller/payment_controller";
+import fakeDataController from "../controller/fake_data_controller";
 import JwtAction from "../middleware/jwt_action";
 
 const router = express.Router();
@@ -68,6 +69,7 @@ const initApiRoutes = (app) => {
     router.post("/dashboard/getPercentageStar", dashboardController.getPercentageStar);
     router.post("/dashboard/getPercentageOption", dashboardController.getPercentageOption);
     router.post("/dashboard/getAvgAndNumberOption", dashboardController.getAvgAndNumberOption);
+    router.post("/dashboard/getAvgStarAndTotalOptionByDate", dashboardController.getAvgStarAndTotalOptionByDate);
 
     // Review Version
     router.post("/reviewVersion/create", reviewVersionController.createNewReviewApp);
@@ -83,6 +85,11 @@ const initApiRoutes = (app) => {
     router.post("/payment", paymentController.paymentController);
     router.post("/callback", paymentController.paymentCallBackController);
     router.post("/check-status-order", paymentController.checkStatusOrderController);
+
+    // Fake Data
+    // list user review app
+    router.post("/fakeData/userReviewApp", fakeDataController.createNewReviewApp);
+    router.post("/fakeData/createUser", fakeDataController.registerController);
 
 
     return app.use("/api/v1/", router);

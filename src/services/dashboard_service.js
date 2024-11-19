@@ -578,6 +578,7 @@ const getAvgAndNumberOption = async (rawData) => {
         // const listOptionName = await getOptionName();
         const dataAvg = await getAvgNumberStar();
         const dataOption = await getOption();
+        console.log(dataOption)
         if (dataAvg) {
             const dateTime = dataAvg.map((e) => e.reviewDate)
             const averageRating = dataAvg.map((e) => e.averageRating)
@@ -669,6 +670,132 @@ const getAvgAndNumberOption = async (rawData) => {
     }
 }
 
+class TotalReviewOption {
+
+    static getTotalReviewOptionByDate = async (date) => {
+        try {
+            const sql = `
+                SELECT 
+                    rdv.reviewOptionid, ro.reviewOptionName,
+                    COUNT(rdv.reviewOptionid) AS totalReviewOption
+                FROM 
+                    review_detail_version rdv
+                LEFT JOIN review_options ro on ro.reviewOptionId = rdv.ReviewOptionId
+                WHERE 
+                    rdv.created_at = ?
+
+                GROUP BY 
+                    rdv.reviewOptionid, ro.reviewOptionName
+                ORDER BY
+                    ro.reviewOptionId asc;
+            `;
+
+            const values = [date]
+
+            const [data] = await db.query(sql, values);
+
+            return data;
+
+        } catch (error) {
+            console.log(error);
+
+            return {
+                EM: "Some thing went wrong in service ...",
+                EC: -2,
+            };
+        }
+    }
+
+    static getAvgStarByDayMonthYear = async (date) => {
+        try {
+            const sql = `
+               SELECT 
+                    DATE_FORMAT(created_at, '%e/%c') AS dayMonth, 
+                    ROUND(AVG(rv.rating), 1) AS avgRating
+                FROM 
+                    review_version rv
+                WHERE 
+                    DATE(rv.created_at) = ?
+                GROUP BY 
+                    dayMonth;
+            `;
+
+            const value = [date]
+
+            const [data, fields] = await db.query(sql, value);
+
+            return data;
+
+        } catch (error) {
+            console.log(error);
+
+            return {
+                EM: "Some thing went wrong in service ...",
+                EC: -2,
+            };
+        }
+    }
+}
+const getAvgStarAndTotalOptionByDate = async (rawData) => {
+    const listDayMonth = [];
+    const listDataAvgStar = [];
+    const resultMap = {};
+
+    try {
+        for (const item of rawData.days) {
+
+            const avgStar = await TotalReviewOption.getAvgStarByDayMonthYear(item);
+            const totalReview = await TotalReviewOption.getTotalReviewOptionByDate(item);
+
+            if (avgStar) {
+                avgStar.forEach((e) => listDayMonth.push(e.dayMonth));
+                avgStar.forEach((e) => listDataAvgStar.push(e.avgRating));
+            }
+
+            if (totalReview) {
+                totalReview.forEach((e) => {
+                    const name = getNameByReviewOptionId(e.reviewOptionid);
+                    if (!resultMap[name]) {
+                        resultMap[name] = { name: name, data: [] };
+                    }
+                    resultMap[name].data.push(e.totalReviewOption);
+                });
+            }
+        }
+
+        // Chuyển kết quả từ đối tượng resultMap sang mảng result
+        const result = Object.values(resultMap);
+
+        return {
+            EM: "get data success",
+            EC: 0,
+            DT: {
+                listDayMonth,
+                listDataAvgStar,
+                result
+            }
+        };
+    } catch (error) {
+        console.log(error);
+        return {
+            EM: "Some thing went wrong in service ...",
+            EC: -2,
+        };
+    }
+}
+
+// Hàm ví dụ để lấy tên theo reviewOptionid
+function getNameByReviewOptionId(id) {
+    switch (id) {
+        case 1: return "Chính xác";
+        case 2: return "Nhanh";
+        case 3: return "Tiện lợi";
+        case 4: return "Chậm";
+        case 5: return "Không chính xác";
+        case 6: return "Bất tiện";
+        default: return "Không xác định";
+    }
+}
 
 
 
@@ -678,5 +805,6 @@ module.exports = {
     getListReviewOptions,
     getPercentageStar,
     getPercentageOption,
-    getAvgAndNumberOption
+    getAvgAndNumberOption,
+    getAvgStarAndTotalOptionByDate
 };

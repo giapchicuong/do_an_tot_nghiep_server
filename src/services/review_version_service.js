@@ -18,7 +18,6 @@ const createNewReviewVersion = async (db, userId, versionId, rating) => {
 }
 
 const createNewReviewDetailVersion = async (db, reviewId, reviewOptions) => {
-    console.log('reviewoptions', reviewOptions)
     for (const item of reviewOptions) {
 
         const sql = `
