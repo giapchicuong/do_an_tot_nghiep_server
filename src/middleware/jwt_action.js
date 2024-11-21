@@ -5,7 +5,8 @@ const nonSecurePaths = [
     "/login",
     "/logout",
     "/register",
-    "/callback"
+    "/callback",
+    "/image/"
 ];
 
 const createAccessJwt = (payload) => {
@@ -74,9 +75,17 @@ const extractToken = (req) => {
     return null;
 };
 
+const isNonImage = (path) => {
+    // Kiểm tra nếu URL bắt đầu bằng '/image/'
+    return nonSecurePaths.some((nonSecurePath) => {
+        const regex = new RegExp(`^${nonSecurePath.replace(':imageName', '.*')}`);
+        return regex.test(path);
+    });
+};
+
 const checkUserJwt = async (req, res, next) => {
 
-    if (nonSecurePaths.includes(req.path)) return next();
+    if (nonSecurePaths.includes(req.path) || isNonImage(req.path)) return next();
     let cookies = req.cookies;
 
     let tokenFromHeader = extractToken(req);

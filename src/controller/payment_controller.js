@@ -15,7 +15,7 @@ const config = {
 
 const paymentController = async (req, res) => {
     const embed_data = {
-        redirecturl: 'demozpdk://payment_result',
+        redirecturl: 'demozpdk://app',
     };
 
     const CURRENTNORMALSTATUSID = 2
@@ -35,7 +35,7 @@ const paymentController = async (req, res) => {
         embed_data: JSON.stringify(embed_data),
         //khi thanh toán xong, zalopay server sẽ POST đến url này để thông báo cho server của mình
         //Chú ý: cần dùng ngrok để public url thì Zalopay Server mới call đến được
-        callback_url: 'https://a608-2405-4802-a5fc-e7e0-3480-5a-5cde-5314.ngrok-free.app/api/v1/callback',
+        callback_url: 'https://08db-2402-800-63b9-855b-985-79c3-4b0e-ba.ngrok-free.app/api/v1/callback',
         description: `AIFreshify thanh toán cho đơn hàng #${transID}`,
         bank_code: 'zalopayapp',
     };
@@ -86,7 +86,7 @@ const paymentController = async (req, res) => {
 
         const result = await axios.post(config.endpoint, null, { params: order });
 
-        return res.status(200).json(result.data);
+        return res.status(200).json({ ...result.data, app_trans_id: order.app_trans_id, });
 
     } catch (error) {
 
