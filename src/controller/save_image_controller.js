@@ -2,9 +2,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require('fs');
 const { removeBackground } = require('@imgly/background-removal-node');
-
+process.env.JWT_ACCESS_EXPIRES_IN
 const PATH_1 = '../.././assets/images/image_review_fruits'
-const PATH_2 = '../.././assets/images/images_review_fruits_no_background'
 
 
 async function removeImageBackground(imgSource) {
@@ -37,7 +36,7 @@ async function removeImageBackground(imgSource) {
     }
 }
 
-const removeBg = async (imagePath, imagePath2) => {
+const removeBg = async (imagePath) => {
 
     // Removing background from the input image
     const resultDataURL = await removeImageBackground(imagePath);
@@ -51,7 +50,7 @@ const removeBg = async (imagePath, imagePath2) => {
     // Tạo một chuỗi định danh duy nhất
     const uniqueSuffix = formattedDate + "-" + Math.round(Math.random() * 1e9);
 
-    fs.writeFileSync(imagePath2, resultDataURL.split(';base64,').pop(), { encoding: 'base64' });
+    fs.writeFileSync(imagePath, resultDataURL.split(';base64,').pop(), { encoding: 'base64' });
 
     // Logging success message
     console.log('Background removed successfully.');
@@ -96,66 +95,45 @@ const getImage = async (req, res) => {
 
     const { imageName } = req.params;
     const imagePath = path.join(__dirname, PATH_1, imageName);
-    const imagePath2 = path.join(__dirname, PATH_2, imageName);
 
     // Kiểm tra nếu file tồn tại
     if (fs.existsSync(imagePath)) {
         // Gửi hình ảnh với MIME type đúng
-        removeBg(imagePath, imagePath2)
         res.sendFile(imagePath);
     } else {
         res.status(404).json({ error: 'Image not found' });
     }
 }
 
-const storageNoBackground = multer.diskStorage({
-    path,
-    destination: (req, file, cb) => {
-        cb(null, path.resolve(__dirname, PATH_2));
-    },
-    filename: (req, file, cb) => {
-        // Lấy ngày hiện tại
-        const currentDate = new Date();
 
-        // Định dạng ngày theo day-month-year
-        const formattedDate = `${currentDate.getDate()}-${currentDate.getMonth() + 1}-${currentDate.getFullYear()}`;
-
-        // Tạo một chuỗi định danh duy nhất
-        const uniqueSuffix = formattedDate + "-" + Math.round(Math.random() * 1e9);
-
-        cb(null, uniqueSuffix + "_" + file.originalname);
-    },
-});
-
-const uploadNoBackground = multer({
-
-    storage: storageNoBackground,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn file 5MB
-    fileFilter: (req, file, cb) => {
-        const allowedMimeTypes = ["image/png", "image/jpg", "image/jpeg"];
-        if (allowedMimeTypes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error("Invalid file type. Only png, jpg, and jpeg are allowed."));
+const uploadAndRemoveBg = (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) {
+            return res.status(400).send({ message: err.message });
         }
-    },
-});
 
-const getImageNoBackground = async (req, res) => {
+        try {
+            const uploadedImagePath = path.resolve(__dirname, PATH_1, req.file.filename);
 
-    const { imageName } = req.params;
-    const imagePath = path.join(__dirname, PATH_2, imageName);
-
-    // Kiểm tra nếu file tồn tại
-    if (fs.existsSync(imagePath)) {
-        // Gửi hình ảnh với MIME type đúng
-        res.sendFile(imagePath);
-    } else {
-        res.status(404).json({ error: 'Image not found' });
-    }
-}
+            await removeBg(uploadedImagePath);
 
 
+            res.status(200).json({
+                EM: "File uploaded and background removed successfully!",
+                EC: 0,
+                DT: `${process.env.API}/api/v1/image/${req.file.filename}`,
+            });
+
+        } catch (error) {
+            return res.status(500).json({
+                EM: "Error processing image" + error.message,
+                EC: "-1",
+                DT: "",
+            });
+        }
+    });
+};
 
 
-module.exports = { upload, getImage, uploadNoBackground, getImageNoBackground };
+
+module.exports = { upload, getImage, uploadAndRemoveBg };

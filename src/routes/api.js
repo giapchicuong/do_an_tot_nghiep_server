@@ -12,6 +12,7 @@ import reviewVersionController from "../controller/review_version_controller";
 import resultsReviewController from "../controller/results_review_controller";
 import paymentController from "../controller/payment_controller";
 import saveImageController from "../controller/save_image_controller";
+import paymentTransactionController from "../controller/payment_transaction_controller";
 import fakeDataController from "../controller/fake_data_controller";
 import JwtAction from "../middleware/jwt_action";
 
@@ -79,18 +80,20 @@ const initApiRoutes = (app) => {
     router.get("/reviewVersion/getListUserRating", reviewVersionController.getListUserRating);
 
     // Result Review
-    router.post("/resultReview/create", saveImageController.upload, resultsReviewController.createNewResultsReview);
+    router.post("/resultReview/create", resultsReviewController.createNewResultsReview);
+    router.get("/resultReview/getResultsReviewByUserId", resultsReviewController.getResultsReviewByUserId);
+
+    router.post("/upload-image", saveImageController.uploadAndRemoveBg);
 
     router.get("/image/:imageName", saveImageController.getImage);
-    router.get("/imageNoBackground/:imageName", saveImageController.getImageNoBackground);
 
+    // Payment Transactioln 
+    router.get("/paymentTransaction/getPaymentTransactionByUserId", paymentTransactionController.getPaymentTransactionByUserId);
 
     // Payment
     router.post("/payment", paymentController.paymentController);
     router.post("/callback", paymentController.paymentCallBackController);
     router.post("/check-status-order", paymentController.checkStatusOrderController);
-
-
 
     // Fake Data
     // list user review app

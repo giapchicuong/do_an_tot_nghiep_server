@@ -6,7 +6,9 @@ const nonSecurePaths = [
     "/logout",
     "/register",
     "/callback",
-    "/image/"
+    "/image/",
+    "/upload-image",
+
 ];
 
 const createAccessJwt = (payload) => {

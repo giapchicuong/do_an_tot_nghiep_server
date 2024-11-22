@@ -2,7 +2,7 @@ const axios = require('axios').default;
 const CryptoJS = require('crypto-js');
 const moment = require('moment');
 const qs = require('qs');
-
+require("dotenv").config();
 import userStatusLevelService from "../services/user_status_level_service";
 
 const config = {
@@ -35,7 +35,7 @@ const paymentController = async (req, res) => {
         embed_data: JSON.stringify(embed_data),
         //khi thanh toán xong, zalopay server sẽ POST đến url này để thông báo cho server của mình
         //Chú ý: cần dùng ngrok để public url thì Zalopay Server mới call đến được
-        callback_url: 'https://08db-2402-800-63b9-855b-985-79c3-4b0e-ba.ngrok-free.app/api/v1/callback',
+        callback_url: `${process.env.API}/api/v1/callback`,
         description: `AIFreshify thanh toán cho đơn hàng #${transID}`,
         bank_code: 'zalopayapp',
     };

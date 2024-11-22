@@ -172,7 +172,7 @@ const getUserById = async (id) => {
     }
 }
 
-const checkUserLevelIsAdmin = async (id) => {
+const checkUserLevelIsVip = async (id) => {
     try {
         const sql = `
                 select do.durationId
@@ -235,5 +235,5 @@ module.exports = {
     createNewUser,
     updateUser,
     checkTimeEndAndUpdate,
-    checkUserLevelIsAdmin
+    checkUserLevelIsVip
 };

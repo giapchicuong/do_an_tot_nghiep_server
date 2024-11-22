@@ -65,9 +65,9 @@ const updateFunc = async (req, res) => {
 const getUserAccount = async (req, res) => {
 
     try {
-        const dataCheckIsAdmin = await userServices.checkUserLevelIsAdmin(req.user.userId);
+        const dataCheckIsVip = await userServices.checkUserLevelIsVip(req.user.userId);
 
-        if (dataCheckIsAdmin) {
+        if (dataCheckIsVip) {
 
             await userServices.checkTimeEndAndUpdate(req.user.userId);
 
@@ -80,8 +80,8 @@ const getUserAccount = async (req, res) => {
                     email: req.user.email,
                     userId: req.user.userId,
                     groupId: req.user.groupId,
-                    isAdmin: true,
-                    durations: dataCheckIsAdmin[0],
+                    isVip: true,
+                    durations: dataCheckIsVip[0],
                 },
             });
         } else {
@@ -95,7 +95,7 @@ const getUserAccount = async (req, res) => {
                     email: req.user.email,
                     userId: req.user.userId,
                     groupId: req.user.groupId,
-                    isAdmin: false,
+                    isVip: false,
                     duration: null
                 },
             });
