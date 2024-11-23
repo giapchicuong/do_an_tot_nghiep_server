@@ -10,6 +10,7 @@ const getPaymentTransactionByUserId = async (rawData) => {
 		left join user_status_level usl on usl.userId = pt.userId
         left join duration_options do on do.durationId = usl.durationid
         where pt.userId=?
+        order by pt.created_at desc
 `;
 
         const value = [rawData.userId]

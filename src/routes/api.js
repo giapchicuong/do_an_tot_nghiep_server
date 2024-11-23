@@ -13,6 +13,7 @@ import resultsReviewController from "../controller/results_review_controller";
 import paymentController from "../controller/payment_controller";
 import saveImageController from "../controller/save_image_controller";
 import paymentTransactionController from "../controller/payment_transaction_controller";
+import versionController from "../controller/version_controller";
 import fakeDataController from "../controller/fake_data_controller";
 import JwtAction from "../middleware/jwt_action";
 
@@ -70,7 +71,6 @@ const initApiRoutes = (app) => {
     // Analyst
     router.post("/dashboard/getPercentageStar", dashboardController.getPercentageStar);
     router.post("/dashboard/getPercentageOption", dashboardController.getPercentageOption);
-    router.post("/dashboard/getAvgAndNumberOption", dashboardController.getAvgAndNumberOption);
     router.post("/dashboard/getAvgStarAndTotalOptionByDate", dashboardController.getAvgStarAndTotalOptionByDate);
 
     // Review Version
@@ -94,6 +94,10 @@ const initApiRoutes = (app) => {
     router.post("/payment", paymentController.paymentController);
     router.post("/callback", paymentController.paymentCallBackController);
     router.post("/check-status-order", paymentController.checkStatusOrderController);
+
+    // Version
+    router.get("/versionApp/read", versionController.readFunc);
+    router.post("/versionApp/create", versionController.createFunc);
 
     // Fake Data
     // list user review app

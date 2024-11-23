@@ -2,7 +2,7 @@ import db from "../config/db";
 
 const getResultsReviewByUserId = async (rawData) => {
     try {
-        const sql = "SELECT ratingName,ratingValue,imageUrl,created_at as createdAt FROM results_review where userId = ?";
+        const sql = "SELECT ratingName,ratingValue,imageUrl,created_at as createdAt FROM results_review where userId = ?  order by created_at desc";
 
         const values = [rawData.userId];
 
