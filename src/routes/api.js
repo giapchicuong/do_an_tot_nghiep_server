@@ -98,6 +98,7 @@ const initApiRoutes = (app) => {
     // Version
     router.get("/versionApp/read", versionController.readFunc);
     router.post("/versionApp/create", versionController.createFunc);
+    router.put("/versionApp/update", versionController.updateFunc);
 
     // Fake Data
     // list user review app
