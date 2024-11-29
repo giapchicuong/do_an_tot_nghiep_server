@@ -1,3 +1,4 @@
+import { is } from "bluebird";
 import db from "../config/db";
 
 const createNewReviewVersion = async (db, userId, versionId, rating) => {
@@ -36,23 +37,25 @@ const createNewReviewDetailVersion = async (db, reviewId, reviewOptions) => {
 const getVersionTotalRatingAndAvgRating = async () => {
     try {
         const sql = `
-        SELECT 
-            SUM(rv.rating) AS totalRating, 
-            AVG(rv.rating) AS avgRating, 
-            rv.versionId, 
+            SELECT 
+            COALESCE(count(rv.rating), 0) AS totalRating, 
+            COALESCE(AVG(rv.rating), 0) AS avgRating, 
+            av.versionId, 
             av.nameVersion, 
             av.created_at AS createdAt
         FROM 
-            review_version rv
+            app_versions av
         LEFT JOIN 
-            app_versions av ON av.versionid = rv.versionid
+            review_version rv ON av.versionId = rv.versionId
         WHERE 
-            av.created_at = (SELECT MAX(created_at) FROM app_versions)
+            av.isSelectedVersion = true
         GROUP BY 
-            rv.versionId, av.nameVersion, av.created_at;
+            av.versionId, av.nameVersion, av.created_at;
+
         `;
 
         const [data, fields] = await db.query(sql);
+
 
         if (data && data.length > 0) {
             return {
@@ -112,6 +115,20 @@ const getOptionRating = async () => {
     }
 }
 
+const checkUserIsRating = async (connection, userId) => {
+    const sql = `
+      SELECT * FROM review_version where userId= ?;
+    `;
+
+    const [data, fields] = await connection.query(sql, [userId]);
+    if (data.length > 0) {
+        return true
+    } else {
+        return false
+    }
+};
+
+
 
 const getUserRatings = async (connection) => {
     const sql = `
@@ -126,7 +143,7 @@ const getUserRatings = async (connection) => {
         LEFT JOIN users u ON u.userId = rv.userId
         LEFT JOIN app_versions av ON av.versionId = rv.VersionId
         LEFT JOIN review_options ro ON ro.ReviewOptionId = rdv.reviewOptionId
-        WHERE av.created_at = (SELECT MAX(created_at) FROM app_versions)
+        WHERE av.IsSelectedVersion=true
         GROUP BY u.username, u.email, av.nameVersion, rv.rating
         ORDER BY createdAt DESC;
     `;
@@ -136,15 +153,19 @@ const getUserRatings = async (connection) => {
 
 
 
-const getListUserRating = async () => {
+const getListUserRating = async (rawData) => {
     try {
         const [data, fields] = await getUserRatings(db);
 
         if (data) {
+            const isRating = await checkUserIsRating(db, rawData.userId)
             return {
                 EM: "Get data success.",
                 EC: 0,
-                DT: data,
+                DT: {
+                    isRating: isRating,
+                    listRating: data
+                },
             };
         } else {
             return {
@@ -179,11 +200,14 @@ const createNewReviewApp = async (rawData) => {
 
         await connection.commit();
         if (data) {
-
+            const isRating = await checkUserIsRating(db, rawData.userId)
             return {
                 EM: "Create new review app success.",
                 EC: 0,
-                DT: data,
+                DT: {
+                    isRating: isRating,
+                    listRating: data
+                },
             };
         }
 

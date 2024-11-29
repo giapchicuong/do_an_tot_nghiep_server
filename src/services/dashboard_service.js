@@ -312,31 +312,49 @@ const getListReviewOptions = async () => {
 const getPercentageStar = async (rawData) => {
     try {
         const sql = `
-                WITH total_reviews AS (
+                            WITH stars AS (
+                    SELECT 5 AS numberStar
+                    UNION ALL SELECT 4
+                    UNION ALL SELECT 3
+                    UNION ALL SELECT 2
+                    UNION ALL SELECT 1
+                ),
+                star_counts AS (
+                    SELECT 
+                        rv.rating AS numberStar,
+                        COUNT(rv.rating) AS ratingCount
+                    FROM 
+                        review_version rv
+                    WHERE 
+                        YEAR(rv.created_at) = ?
+                        AND MONTH(rv.created_at) = ?
+                        AND rv.versionId = ?
+                    GROUP BY 
+                        rv.rating
+                ),
+                total_reviews AS (
+                    SELECT 
+                        COUNT(*) AS total_count
+                    FROM 
+                        review_version
+                    WHERE 
+                        YEAR(created_at) = ?
+                        AND MONTH(created_at) = ?
+                        AND versionId = ?
+                )
                 SELECT 
-                    COUNT(rating) AS total_count
+                    s.numberStar,
+                    COALESCE(sc.ratingCount, 0) AS ratingCount,
+                    COALESCE(ROUND((sc.ratingCount * 100.0 / (SELECT total_count FROM total_reviews)), 2), 0) AS ratingPercentage
                 FROM 
-                    review_version
-                WHERE 
-                    EXTRACT(YEAR FROM created_at) = ?
-                    AND EXTRACT(MONTH FROM created_at) = ?
-            )
+                    stars s
+                LEFT JOIN star_counts sc 
+                    ON s.numberStar = sc.numberStar
+                ORDER BY 
+                    s.numberStar DESC;
 
-            SELECT 
-                rating AS numberStar,
-                COUNT(rating) AS ratingCount,
-                ROUND(COUNT(rating) * 100.0 / (SELECT total_count FROM total_reviews), 2) AS ratingPercentage
-            FROM 
-                review_version
-            WHERE 
-                EXTRACT(YEAR FROM created_at) = ?
-                AND EXTRACT(MONTH FROM created_at) = ?
-            GROUP BY 
-                rating
-            ORDER BY 
-                rating desc;
         `;
-        const values = [rawData.year, rawData.month, rawData.year, rawData.month];
+        const values = [rawData.year, rawData.month, rawData.versionId, rawData.year, rawData.month, rawData.versionId];
         const [data, fields] = await db.query(sql, values);
 
         if (data) {
@@ -366,66 +384,80 @@ const getPercentageStar = async (rawData) => {
     }
 }
 
+const getAllOption = async (db) => {
+    const sql = `
+                SELECT reviewOptionId, reviewOptionName FROM review_options;
+    `;
+
+    const [data] = await db.query(sql);
+    if (data.length > 0) {
+        return data;
+    } else {
+        throw new Error("Get All Option failed");
+    }
+}
+
+const getCountReviewByReviewDetailId = async (db, versionId, reviewOptionId) => {
+    const sql = `
+               SELECT count(reviewDetailId) as countReview
+               FROM review_detail_version rdv
+               LEFT JOIN review_version rv ON rv.ReviewId = rdv.reviewId
+               WHERE versionId = ? AND rdv.reviewOptionId = ?
+    `;
+
+    const [data] = await db.query(sql, [versionId, reviewOptionId]);
+    return data[0] ?? { countReview: 0 };
+}
+
+const getTotalReviewByReviewDetailByVersionId = async (db, versionId) => {
+    const sql = `
+              SELECT count(reviewDetailId) as countReview
+              FROM review_detail_version rdv
+              LEFT JOIN review_version rv ON rv.ReviewId = rdv.reviewId
+              WHERE versionId = ?
+    `;
+
+    const [data] = await db.query(sql, [versionId]);
+    return data[0] ?? { countReview: 0 };
+}
+
 const getPercentageOption = async (rawData) => {
     try {
-        const sql = `
-              WITH totalReviewOption AS (
-                    SELECT 
-                        COUNT(reviewOptionId) AS totalOption
-                    FROM 
-                        review_detail_version
-                    WHERE 
-                        EXTRACT(YEAR FROM review_detail_version.created_at) = ?
-                        AND EXTRACT(MONTH FROM review_detail_version.created_at) = ?
-                )
+        const listRating = []
+        const dataOption = await getAllOption(db)
 
-                SELECT 
-                    ro.reviewOptionName AS reviewOptionName,
-                    COUNT(rdv.reviewOptionId) AS reviewOptionCount,
-                    ROUND(COUNT(rdv.reviewOptionId) * 100.0 / (SELECT totalOption FROM totalReviewOption), 2) AS optionPercentage
-                FROM 
-                    review_version rv
-                LEFT JOIN review_detail_version rdv ON rdv.reviewId = rv.reviewId
-                LEFT JOIN review_options ro ON ro.reviewOptionId = rdv.reviewOptionId
-                WHERE 
-                    EXTRACT(YEAR FROM rdv.created_at) = ?
-                    AND EXTRACT(MONTH FROM rdv.created_at) = ?
-                GROUP BY 
-                    ro.reviewOptionName
-                ORDER BY 
-                    ro.reviewOptionName;
+        const totalOption = await getTotalReviewByReviewDetailByVersionId(db, rawData.versionId)
 
-        `;
-        const values = [rawData.year, rawData.month, rawData.year, rawData.month];
-        const [data, fields] = await db.query(sql, values);
+        const totalReviewCount = totalOption.countReview ?? 0;
 
-        if (data) {
-            const reviewOptionName = data.map((e) => e.reviewOptionName)
-            const reviewOptionCount = data.map((e) => e.reviewOptionCount)
-            const optionPercentage = data.map((e) => e.optionPercentage)
-            return {
-                EM: "Get list data success.",
-                EC: 0,
-                DT: [{ reviewOptionName: reviewOptionName }, { reviewOptionCount: reviewOptionCount }, { optionPercentage: optionPercentage }],
-            };
-        } else {
-            return {
-                EM: "Get data fail.",
-                EC: 1,
-                DT: [],
-            };
-        }
+        const ratingPromises = dataOption.map(async (item) => {
+            const dataCount = await getCountReviewByReviewDetailId(db, rawData.versionId, item.reviewOptionId)
+            const countReview = dataCount.countReview ?? 0;
+            const percentage = totalReviewCount > 0 ? parseFloat(((countReview / totalReviewCount) * 100).toFixed(2)) : 0;
+            return percentage;
+        });
+
+        const listRatingResults = await Promise.all(ratingPromises);
+
+        const nameOption = dataOption.map((e) => e.reviewOptionName)
+
+        return {
+            EM: "Get list data success.",
+            EC: 0,
+            DT: {
+                nameOption: nameOption,
+                listRating: listRatingResults,
+            },
+        };
 
     } catch (error) {
         console.log(error);
-
         return {
-            EM: "Some thing went wrong in service ...",
+            EM: "Something went wrong in service ...",
             EC: -2,
         };
     }
 }
-
 
 
 
@@ -495,53 +527,6 @@ class TotalReviewOption {
         }
     }
 }
-// const getAvgStarAndTotalOptionByDate = async (rawData) => {
-//     const listDayMonth = [];
-//     const listDataAvgStar = [];
-//     const resultMap = {};
-
-//     try {
-//         for (const item of rawData.days) {
-
-//             const avgStar = await TotalReviewOption.getAvgStarByDayMonthYear(item);
-//             const totalReview = await TotalReviewOption.getTotalReviewOptionByDate(item);
-
-//             if (avgStar) {
-//                 avgStar.forEach((e) => listDayMonth.push(e.dayMonth));
-//                 avgStar.forEach((e) => listDataAvgStar.push(e.avgRating));
-//             }
-
-//             if (totalReview) {
-//                 totalReview.forEach((e) => {
-//                     const name = getNameByReviewOptionId(e.reviewOptionid);
-//                     if (!resultMap[name]) {
-//                         resultMap[name] = { name: name, data: [] };
-//                     }
-//                     resultMap[name].data.push(e.totalReviewOption);
-//                 });
-//             }
-//         }
-
-//         // Chuyển kết quả từ đối tượng resultMap sang mảng result
-//         const result = Object.values(resultMap);
-
-//         return {
-//             EM: "get data success",
-//             EC: 0,
-//             DT: {
-//                 listDayMonth,
-//                 listDataAvgStar,
-//                 result
-//             }
-//         };
-//     } catch (error) {
-//         console.log(error);
-//         return {
-//             EM: "Some thing went wrong in service ...",
-//             EC: -2,
-//         };
-//     }
-// }
 
 const getAvgStarAndTotalOptionByDate = async (rawData) => {
     const listDayMonth = [];

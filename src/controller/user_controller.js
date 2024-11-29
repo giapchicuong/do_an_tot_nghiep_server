@@ -66,7 +66,6 @@ const getUserAccount = async (req, res) => {
 
     try {
         const dataCheckIsVip = await userServices.checkUserLevelIsVip(req.user.userId);
-        console.log(dataCheckIsVip);
 
         if (dataCheckIsVip) {
 

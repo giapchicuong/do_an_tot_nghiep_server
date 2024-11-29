@@ -66,7 +66,7 @@ const getVersionTotalRatingAndAvgRating = async (req, res) => {
 
 const getListUserRating = async (req, res) => {
     try {
-        const data = await reviewVersionServices.getListUserRating();
+        const data = await reviewVersionServices.getListUserRating(req.user);
 
         return res.status(200).json({
             EM: data.EM,
