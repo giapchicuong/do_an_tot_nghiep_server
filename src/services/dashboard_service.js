@@ -308,71 +308,50 @@ const getListReviewOptions = async () => {
     }
 }
 
+class GetPercentageStar {
+
+    static getCountReview = async (db, rating, versionId, month, year) => {
+        const sql = `
+                   select count(reviewId) as countReview from review_version where rating =? and versionId = ? and MONTH(created_at) = ? and YEAR(created_at) = ?
+        `;
+
+        const [data] = await db.query(sql, [rating, versionId, month, year]);
+        return data[0] ?? { countReview: 0 };
+    }
+
+    static getTotalReview = async (db, versionId, month, year) => {
+        const sql = `
+                  select count(reviewId) as totalReview from review_version where versionId = ? and MONTH(created_at) = ? and YEAR(created_at) = ?
+        `;
+
+        const [data] = await db.query(sql, [versionId, month, year]);
+        return data[0].totalReview ?? { totalReview: 0 };
+    }
+}
 
 const getPercentageStar = async (rawData) => {
     try {
-        const sql = `
-                            WITH stars AS (
-                    SELECT 5 AS numberStar
-                    UNION ALL SELECT 4
-                    UNION ALL SELECT 3
-                    UNION ALL SELECT 2
-                    UNION ALL SELECT 1
-                ),
-                star_counts AS (
-                    SELECT 
-                        rv.rating AS numberStar,
-                        COUNT(rv.rating) AS ratingCount
-                    FROM 
-                        review_version rv
-                    WHERE 
-                        YEAR(rv.created_at) = ?
-                        AND MONTH(rv.created_at) = ?
-                        AND rv.versionId = ?
-                    GROUP BY 
-                        rv.rating
-                ),
-                total_reviews AS (
-                    SELECT 
-                        COUNT(*) AS total_count
-                    FROM 
-                        review_version
-                    WHERE 
-                        YEAR(created_at) = ?
-                        AND MONTH(created_at) = ?
-                        AND versionId = ?
-                )
-                SELECT 
-                    s.numberStar,
-                    COALESCE(sc.ratingCount, 0) AS ratingCount,
-                    COALESCE(ROUND((sc.ratingCount * 100.0 / (SELECT total_count FROM total_reviews)), 2), 0) AS ratingPercentage
-                FROM 
-                    stars s
-                LEFT JOIN star_counts sc 
-                    ON s.numberStar = sc.numberStar
-                ORDER BY 
-                    s.numberStar DESC;
+        const listData = []
+        const totalReview = await GetPercentageStar.getTotalReview(db, rawData.versionId, rawData.month, rawData.year)
 
-        `;
-        const values = [rawData.year, rawData.month, rawData.versionId, rawData.year, rawData.month, rawData.versionId];
-        const [data, fields] = await db.query(sql, values);
+        for (var i = 1; i <= 5; i++) {
+            const data = await GetPercentageStar.getCountReview(db, i, rawData.versionId, rawData.month, rawData.year)
+            const numberRating = data?.countReview ?? 0
+            const result = totalReview > 0 ? parseFloat(((numberRating / totalReview) * 100).toFixed(2)) : 0
 
-        if (data) {
-            const numberStar = data.map((e) => e.numberStar)
-            const ratingPercentage = data.map((e) => e.ratingPercentage)
-            const ratingCount = data.map((e) => e.ratingCount)
-            return {
-                EM: "Get list data success.",
-                EC: 0,
-                DT: [{ numberStar: numberStar }, { ratingCount: ratingCount }, { ratingPercentage: ratingPercentage }],
-            };
-        } else {
-            return {
-                EM: "Get data fail.",
-                EC: 1,
-                DT: [],
-            };
+            listData.push(result)
         }
+
+
+        return {
+            EM: "Get list data success.",
+            EC: 0,
+            DT: {
+                name: ['1 sao', '2 sao', '3 sao', '4 sao', '5 sao'],
+                value: listData
+            },
+        };
+
 
     } catch (error) {
         console.log(error);
@@ -384,54 +363,58 @@ const getPercentageStar = async (rawData) => {
     }
 }
 
-const getAllOption = async (db) => {
-    const sql = `
-                SELECT reviewOptionId, reviewOptionName FROM review_options;
-    `;
 
-    const [data] = await db.query(sql);
-    if (data.length > 0) {
-        return data;
-    } else {
-        throw new Error("Get All Option failed");
+class GetPercentageOption {
+
+
+    static getAllOption = async (db) => {
+        const sql = `
+                    SELECT reviewOptionId, reviewOptionName FROM review_options;
+        `;
+
+        const [data] = await db.query(sql);
+        if (data.length > 0) {
+            return data;
+        } else {
+            throw new Error("Get All Option failed");
+        }
     }
-}
 
-const getCountReviewByReviewDetailId = async (db, versionId, reviewOptionId) => {
-    const sql = `
-               SELECT count(reviewDetailId) as countReview
-               FROM review_detail_version rdv
-               LEFT JOIN review_version rv ON rv.ReviewId = rdv.reviewId
-               WHERE versionId = ? AND rdv.reviewOptionId = ?
-    `;
+    static getCountReviewByReviewDetailId = async (db, versionId, reviewOptionId, month, year) => {
+        const sql = `
+                   SELECT count(reviewDetailId) as countReview
+                   FROM review_detail_version rdv
+                   LEFT JOIN review_version rv ON rv.ReviewId = rdv.reviewId
+                   WHERE versionId = ? AND rdv.reviewOptionId = ? and MONTH(rdv.created_at) = ? and YEAR(rdv.created_at) = ?
+        `;
 
-    const [data] = await db.query(sql, [versionId, reviewOptionId]);
-    return data[0] ?? { countReview: 0 };
-}
+        const [data] = await db.query(sql, [versionId, reviewOptionId, month, year]);
+        return data[0] ?? { countReview: 0 };
+    }
 
-const getTotalReviewByReviewDetailByVersionId = async (db, versionId) => {
-    const sql = `
-              SELECT count(reviewDetailId) as countReview
-              FROM review_detail_version rdv
-              LEFT JOIN review_version rv ON rv.ReviewId = rdv.reviewId
-              WHERE versionId = ?
-    `;
+    static getTotalReviewByReviewDetailByVersionId = async (db, versionId, month, year) => {
+        const sql = `
+                  SELECT count(reviewDetailId) as countReview
+                  FROM review_detail_version rdv
+                  LEFT JOIN review_version rv ON rv.ReviewId = rdv.reviewId
+                  WHERE versionId = ? and MONTH(rdv.created_at) = ? and YEAR(rdv.created_at) = ?
+        `;
 
-    const [data] = await db.query(sql, [versionId]);
-    return data[0] ?? { countReview: 0 };
+        const [data] = await db.query(sql, [versionId, month, year]);
+        return data[0] ?? { countReview: 0 };
+    }
 }
 
 const getPercentageOption = async (rawData) => {
     try {
-        const listRating = []
-        const dataOption = await getAllOption(db)
+        const dataOption = await GetPercentageOption.getAllOption(db)
 
-        const totalOption = await getTotalReviewByReviewDetailByVersionId(db, rawData.versionId)
+        const totalOption = await GetPercentageOption.getTotalReviewByReviewDetailByVersionId(db, rawData.versionId, rawData.month, rawData.year)
 
         const totalReviewCount = totalOption.countReview ?? 0;
 
         const ratingPromises = dataOption.map(async (item) => {
-            const dataCount = await getCountReviewByReviewDetailId(db, rawData.versionId, item.reviewOptionId)
+            const dataCount = await GetPercentageOption.getCountReviewByReviewDetailId(db, rawData.versionId, item.reviewOptionId, rawData.month, rawData.year)
             const countReview = dataCount.countReview ?? 0;
             const percentage = totalReviewCount > 0 ? parseFloat(((countReview / totalReviewCount) * 100).toFixed(2)) : 0;
             return percentage;
@@ -459,172 +442,121 @@ const getPercentageOption = async (rawData) => {
     }
 }
 
-
-
 class TotalReviewOption {
 
-    static getTotalReviewOptionByDate = async (date) => {
-        try {
-            const sql = `
-                SELECT 
-                    rdv.reviewOptionid, ro.reviewOptionName,
-                    COUNT(rdv.reviewOptionid) AS totalReviewOption
-                FROM 
-                    review_detail_version rdv
-                LEFT JOIN review_options ro on ro.reviewOptionId = rdv.ReviewOptionId
-                WHERE 
-                    rdv.created_at = ?
+    static getAllOption = async (db) => {
+        const sql = `
+                    SELECT reviewOptionId, reviewOptionName FROM review_options;
+        `;
 
-                GROUP BY 
-                    rdv.reviewOptionid, ro.reviewOptionName
-                ORDER BY
-                    ro.reviewOptionId asc;
-            `;
-
-            const values = [date]
-
-            const [data] = await db.query(sql, values);
-
+        const [data] = await db.query(sql);
+        if (data.length > 0) {
             return data;
-
-        } catch (error) {
-            console.log(error);
-
-            return {
-                EM: "Some thing went wrong in service ...",
-                EC: -2,
-            };
+        } else {
+            throw new Error("Get All Option failed");
         }
     }
 
-    static getAvgStarByDayMonthYear = async (date) => {
-        try {
-            const sql = `
-               SELECT 
-                    DATE_FORMAT(created_at, '%e/%c') AS dayMonth, 
-                    ROUND(AVG(rv.rating), 1) AS avgRating
-                FROM 
-                    review_version rv
-                WHERE 
-                    DATE(rv.created_at) = ?
-                GROUP BY 
-                    dayMonth;
-            `;
 
-            const value = [date]
-
-            const [data, fields] = await db.query(sql, value);
-
-            return data;
-
-        } catch (error) {
-            console.log(error);
-
-            return {
-                EM: "Some thing went wrong in service ...",
-                EC: -2,
-            };
-        }
+    static getCountReviewByDate = async (db, versionId, reviewOptionId, date) => {
+        const sql = `
+        SELECT count(rdv.reviewDetailId) as countReview
+        FROM review_detail_version rdv
+        LEFT JOIN review_version rv ON rv.ReviewId = rdv.ReviewId 
+        WHERE rv.versionId = ? AND rdv.reviewOptionId = ? AND DATE(rdv.created_at) = ?;
+        `
+        const [data] = await db.query(sql, [versionId, reviewOptionId, date])
+        return data[0].countReview ?? 0
     }
+
+    static getTotalReviewByDate = async (db, date) => {
+        const sql = `
+         SELECT count(rdv.reviewDetailId) as totalReview
+        FROM review_detail_version rdv
+        LEFT JOIN review_version rv ON rv.ReviewId = rdv.ReviewId 
+        WHERE  DATE(rdv.created_at) = ?;
+        `
+        const [data] = await db.query(sql, [date])
+        return data[0].totalReview ?? 0
+    }
+
+    static getAvgStarByDate = async (db, versionId, date) => {
+        const sql = `
+        SELECT avg(rating) as avgStar
+        FROM review_detail_version rdv
+        LEFT JOIN review_version rv ON rv.ReviewId = rdv.ReviewId 
+        WHERE rv.versionId = ?  AND DATE(rdv.created_at) = ?;
+        `
+        const [data] = await db.query(sql, [versionId, date])
+        return data[0].avgStar ?? 0
+    }
+
+
+
+    static formattedDates = (dates) => {
+        return dates.map(date => {
+            const [year, month, day] = date.split("-");
+            return `${day}/${month}/${year}`;
+        });
+    };
+
 }
 
 const getAvgStarAndTotalOptionByDate = async (rawData) => {
-    const listDayMonth = [];
-    const listDataAvgStar = [];
-    const resultMap = {};
-
-    // Chuyển đổi danh sách ngày từ payload thành định dạng ngày/tháng
-    const allDays = rawData.days.map((day) => {
-        const date = new Date(day);
-        return `${date.getDate()}/${date.getMonth() + 1}`;
-    });
-
-    const allOptions = [
-        { id: 1, name: "Chính xác" },
-        { id: 2, name: "Nhanh" },
-        { id: 3, name: "Tiện lợi" },
-        { id: 4, name: "Chậm" },
-        { id: 5, name: "Không chính xác" },
-        { id: 6, name: "Bất tiện" },
-    ];
-
     try {
-        // Khởi tạo dữ liệu mặc định
-        for (const day of allDays) {
-            listDayMonth.push(day); // Lưu ngày vào danh sách
-            listDataAvgStar.push("0.0"); // Mặc định điểm trung bình là 0
+        const allOptions = await TotalReviewOption.getAllOption(db);
+        const listCountOption = [];
+        const listAvgStar = [];
 
+        const groupedData = {};
+        allOptions.forEach(option => {
+            groupedData[option.reviewOptionId] = {
+                nameOption: option.reviewOptionName,
+                value: []
+            };
+        });
+
+        for (const date of rawData.dates) {
             for (const option of allOptions) {
-                if (!resultMap[option.name]) {
-                    resultMap[option.name] = { name: option.name, data: [] };
-                }
-                resultMap[option.name].data.push(0); // Mặc định là 0 cho mỗi ngày
+                const data = await TotalReviewOption.getCountReviewByDate(
+                    db,
+                    rawData.versionId,
+                    option.reviewOptionId,
+                    date
+                );
+                groupedData[option.reviewOptionId].value.push(data);
             }
+            const data = await TotalReviewOption.getAvgStarByDate(db, rawData.versionId, date)
+            listAvgStar.push(data)
         }
 
-        for (const item of rawData.days) {
-            const formattedDay = new Date(item);
-            const dayMonth = `${formattedDay.getDate()}/${formattedDay.getMonth() + 1}`;
-
-            const avgStar = await TotalReviewOption.getAvgStarByDayMonthYear(item);
-            const totalReview = await TotalReviewOption.getTotalReviewOptionByDate(item);
-
-            // Cập nhật điểm trung bình nếu có dữ liệu
-            if (avgStar && avgStar.length > 0) {
-                avgStar.forEach((e) => {
-                    const index = listDayMonth.indexOf(dayMonth);
-                    if (index !== -1) {
-                        listDataAvgStar[index] = e.avgRating;
-                    }
-                });
+        Object.values(groupedData).forEach(optionData => {
+            if (optionData.value.length > 0) {
+                listCountOption.push(optionData);
             }
-
-            // Cập nhật tổng số đánh giá nếu có dữ liệu
-            if (totalReview && totalReview.length > 0) {
-                totalReview.forEach((e) => {
-                    const name = getNameByReviewOptionId(e.reviewOptionid);
-                    const index = listDayMonth.indexOf(dayMonth);
-                    if (index !== -1 && resultMap[name]) {
-                        resultMap[name].data[index] = e.totalReviewOption;
-                    }
-                });
-            }
-        }
-
-        // Chuyển kết quả từ đối tượng resultMap sang mảng result
-        const result = Object.values(resultMap);
+        });
 
         return {
-            EM: "get data success",
+            EM: "Get data success",
             EC: 0,
             DT: {
-                listDayMonth,
-                listDataAvgStar,
-                result,
-            },
+                dates: TotalReviewOption.formattedDates(rawData.dates),
+                avgStar: {
+                    name: 'Trung bình số sao',
+                    value: listAvgStar
+                },
+                listCountOption: listCountOption
+            }
         };
     } catch (error) {
         console.log(error);
         return {
-            EM: "Some thing went wrong in service ...",
+            EM: "Something went wrong in service ...",
             EC: -2,
         };
     }
 };
 
-
-// Hàm ví dụ để lấy tên theo reviewOptionid
-function getNameByReviewOptionId(id) {
-    switch (id) {
-        case 1: return "Chính xác";
-        case 2: return "Nhanh";
-        case 3: return "Tiện lợi";
-        case 4: return "Chậm";
-        case 5: return "Không chính xác";
-        case 6: return "Bất tiện";
-        default: return "Không xác định";
-    }
-}
 
 
 
