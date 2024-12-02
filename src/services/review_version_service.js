@@ -145,7 +145,8 @@ const getUserRatings = async (connection) => {
         LEFT JOIN review_options ro ON ro.ReviewOptionId = rdv.reviewOptionId
         WHERE av.IsSelectedVersion=true
         GROUP BY u.username, u.email, av.nameVersion, rv.rating
-        ORDER BY createdAt DESC;
+        ORDER BY createdAt DESC
+        LIMIT 20;
     `;
 
     return await connection.query(sql);

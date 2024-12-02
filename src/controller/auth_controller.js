@@ -46,18 +46,18 @@ const loginController = async (req, res) => {
 
             res.cookie("accessToken", data.DT.accessToken, {
                 httpOnly: true,
-                secure: false,
-                sameSite: "strict",
-                maxAge: 900 * 10000,
+                secure: true,
+                sameSite: "none",
+                maxAge: 3 * 24 * 60 * 60 * 1000
             });
         }
         if (data && data.EC === 0 && data.DT.refreshToken) {
 
             res.cookie("refreshToken", data.DT.refreshToken, {
                 httpOnly: true,
-                secure: false,
-                sameSite: "strict",
-                maxAge: 3600 * 10000,
+                secure: true,
+                sameSite: "none",
+                maxAge: 3 * 24 * 60 * 60 * 1000
             });
         }
         return res.status(200).json({
